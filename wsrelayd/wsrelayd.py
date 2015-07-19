@@ -169,8 +169,8 @@ class MyServerProtocol(WebSocketServerProtocol):
         glogger.info('CLIENT: onConnect')
 
     def onClose(self, wasClean, code, reason):
-        glogger.info('CLIENT: Closed down. (code=%s, reason=%s)' %
-                     code, reason)
+        glogger.info('CLIENT: Closed down. (code=%s, reason=%s)' % (
+                     code, reason))
 
     def onMessage(self, payload, isBinary):
         glogger.info('CLIENT-RECV : %s' % datetime.datetime.now())
