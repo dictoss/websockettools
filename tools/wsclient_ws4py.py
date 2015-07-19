@@ -112,7 +112,7 @@ def main():
 
     try:
         config = configparser.ConfigParser()
-        config.read('./wsclient.ini')
+        config.read('./wsclient_ws4py.ini')
 
         print('success read config.')
     except:
