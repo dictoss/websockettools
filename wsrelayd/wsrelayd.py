@@ -59,6 +59,7 @@ PROCRET_ERROR_WS = 2
 # global var
 glogger = None
 gconfig = None
+gclientlist = []
 
 
 def init(confpath):
@@ -77,7 +78,7 @@ def init(confpath):
         return False
 
     try:
-        glogger = logging.getLogger(_config.get('log', 'name'))
+        glogger = logging.getLogger(_config.get('main', 'name'))
 
         _logpath = _config.get('log', 'path')
         _h = logging.FileHandler(_logpath)
@@ -96,7 +97,7 @@ def init(confpath):
     return True
 
 
-class MyEqCareWsClient(WebSocketClient):
+class MyEqCareWs4pyClient(WebSocketClient):
     api_userid = ''
     api_password = ''
     api_termid = ''
@@ -155,18 +156,37 @@ class MyEqCareWsClient(WebSocketClient):
                 #
                 # relay code
                 #
+                payload = json.dumps(message, ensure_ascii=False).encode('utf8')
+                for c in gclientlist:
+                    try:
+                        c.client.sendMessage(payload, isBinary=False)
+                    except:
+                        glogger.error('EXCEPT: fail relay. (%s, %s)' % (
+                                sys.exc_info()[0], sys.exc_info()[1]))
         else:
-            print('receive unknown message.')
+            glogger.debug('receive unknown message.')
 
-        print
+
+class MyWebsocetClinetInfo(object):
+    client = None
+    is_auth = False
+    datatypes = {}
+
+    def __init__(self, client):
+        self.client = client
 
 
 class MyServerProtocol(WebSocketServerProtocol):
-    def onOpen(self):
-        glogger.info('CLIENT: onOpen')
+    def onConnect(self, request):
+        glogger.info('CLIENT: onConnect, peer=%s' % (request.peer))
 
-    def onConnect(self):
-        glogger.info('CLIENT: onConnect')
+        wsc = MyWebsocetClinetInfo(self)
+
+        global gclientlist
+        gclientlist.append(wsc)
+
+    def onOpen(self):
+        glogger.info('CLIENT: onOpen(), welcome Websocket!')
 
     def onClose(self, wasClean, code, reason):
         glogger.info('CLIENT: Closed down. (code=%s, reason=%s)' % (
@@ -175,9 +195,10 @@ class MyServerProtocol(WebSocketServerProtocol):
     def onMessage(self, payload, isBinary):
         glogger.info('CLIENT-RECV : %s' % datetime.datetime.now())
 
-        s = payload.decode('utf8')
-        message = json.loads(s)
-        glogger.info(message)
+        if isBinary:
+            pass
+        else:
+            glogger.info(payload)
 
 
 class MyController(object):
@@ -195,7 +216,7 @@ class MyController(object):
 
         try:
             # start upstream client
-            self._upstream = MyEqCareWsClient(
+            self._upstream = MyEqCareWs4pyClient(
                 self._config.get('upstream', 'api_url'),
                 protocols=['http-only', 'chat'])
 
@@ -213,19 +234,32 @@ class MyController(object):
             self._upstream.connect()
 
             # start downstream server
-            __listen_url = '%s://%s:%s' % (
+            #log.startLogging(sys.stdout)
+
+            __listen_url = '%s://%s:%s/wsrelayd/' % (
                 self._config.get('downstream', 'listen_protocol'),
                 self._config.get('downstream', 'listen_address'),
                 self._config.get('downstream', 'listen_port'))
             glogger.info('listen url: %s' % (__listen_url))
 
             self._downstream_factory = WebSocketServerFactory(
-                __listen_url, debug=False)
+                url=__listen_url,
+                protocols=['chat'],
+                debug=False)
             self._downstream_factory.protocol = MyServerProtocol
+            self._downstream_factory.setProtocolOptions(maxFramePayloadSize=0)
+            self._downstream_factory.setProtocolOptions(maxMessagePayloadSize=0)
+            self._downstream_factory.setProtocolOptions(autoFragmentSize=0)
+            self._downstream_factory.setProtocolOptions(openHandshakeTimeout=0)
+            self._downstream_factory.setProtocolOptions(autoPingInterval=300)
+            self._downstream_factory.setProtocolOptions(autoPingTimeout=15)
+            self._downstream_factory.setProtocolOptions(versions=[8, 13])
 
             glogger.info('start downstream connection.')
-            reactor.listenTCP(self._config.getint('downstream', 'listen_port'),
-                              self._downstream_factory)
+            reactor.listenTCP(
+                self._config.getint('downstream', 'listen_port'),
+                self._downstream_factory)
+
             # loop
             reactor.run()
         except:
