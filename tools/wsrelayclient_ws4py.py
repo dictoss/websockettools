@@ -46,7 +46,7 @@ class MyWebsocketClient(WebSocketClient):
 
     def opened(self):
         print('opened')
-        
+
         data = {
           "common": {
             "datatype": "authentication",
@@ -71,10 +71,12 @@ class MyWebsocketClient(WebSocketClient):
 
         self.send(json.dumps(data))
         print(data)
-        
 
     def closed(self, code, reason):
-        print('Closed down. (code=%s, reason=%s)' % code, reason)
+        print('Closed down. (code=%s, reason=%s)' % (code, reason))
+
+    def ponged(self, pong):
+        print('Ponged')
 
     def received_message(self, m):
         print('--------')
