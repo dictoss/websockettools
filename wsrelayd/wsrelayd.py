@@ -170,7 +170,10 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                     payload = json.dumps(message,
                                          ensure_ascii=False).encode('utf8')
 
-                    gdownman.broadcast(payload)
+                    if True:
+                        gdownman.broadcast(payload)
+                    else:
+                        gdownman.filtercast(payload)
             else:
                 print('receive unknown message.')
 
@@ -180,7 +183,7 @@ class MyEqCareProtocol(WebSocketClientProtocol):
 class MyDownstreamClinet(object):
     client = None
     _is_auth = False
-    datatypes = {}
+    _recv_filter = {}
 
     def __init__(self, client):
         self.client = client
@@ -190,6 +193,24 @@ class MyDownstreamClinet(object):
 
     def is_auth(self):
         return self._is_auth
+
+    def set_filter(self, recv_filter):
+        self._recv_filter = recv_filter
+
+    def is_receive(self, payload):
+        # write compare
+        return True
+
+    def sendMessage(self, payload, force):
+        try:
+            if force:
+                self.client.sendMessage(payload, isBinary=False)
+            else:
+                if self.is_receive():
+                    self.client.sendMessage(payload, isBinary=False)
+        except:
+            glogger.warn('EXCEPT: fail relay<%s>. (%s, %s)' % (
+                    id(self.client), sys.exc_info()[0], sys.exc_info()[1]))
 
 
 class MyDownstreamManager(object):
@@ -224,11 +245,12 @@ class MyDownstreamManager(object):
     def broadcast(self, payload):
         with self._lock_clients:
             for k, v in self._clients.iteritems():
-                try:
-                    v.client.sendMessage(payload, isBinary=False)
-                except:
-                    glogger.warn('EXCEPT: fail relay<id>. (%s, %s)' % (
-                            k, sys.exc_info()[0], sys.exc_info()[1]))
+                v.sendMessage(payload, True)
+
+    def filtercast(self, payload):
+        with self._lock_clients:
+            for v in self._clients.values():
+                v.sendMessage(payload, False)
 
 
 class MyServerProtocol(WebSocketServerProtocol):
