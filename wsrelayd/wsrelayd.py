@@ -37,6 +37,7 @@ import json
 import datetime
 import time
 import logging
+import getopt
 import threading
 # for python-2.7
 import ConfigParser
@@ -51,6 +52,7 @@ from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerF
 PROCRET_SUCCESS = 0
 PROCRET_ERROR_CONFIG = 1
 PROCRET_ERROR_WS = 2
+PROCRET_ERROR_GETOPT = 3
 
 
 # global var
@@ -356,8 +358,22 @@ class MyController(object):
         return True
 
 
+def usage():
+    print('usage: wsrelayd.py -c [configfile]')
+
+
 def main():
     confpath = './wsrelayd.ini'
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'c:')
+
+        for o, a in opts:
+            if o == "-c":
+                confpath = a
+    except:
+        usage()
+        return PROCRET_ERROR_GETOPT
 
     try:
         if False == init(confpath):
@@ -368,6 +384,7 @@ def main():
 
     try:
         glogger.info('==== start program ====')
+        glogger.info('use config file: %s' % (confpath))
 
         relay = MyController(gconfig)
 
