@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 #
 # websocket clinet for test.
 #
@@ -36,7 +36,7 @@ import sys
 import json
 import datetime
 import time
-import configparser
+import ConfigParser
 from ws4py.client.threadedclient import WebSocketClient
 
 
@@ -111,24 +111,25 @@ def main():
     config = None
 
     try:
-        config = configparser.ConfigParser()
+        config = ConfigParser.ConfigParser()
         config.read('./wsclient_ws4py.ini')
 
         print('success read config.')
     except:
-        print('error read config. abort.')
+        print('error read config. abort. (%s, %s)' % (
+                sys.exc_info()[0], sys.exc_info()[1]))
         return 2
 
     try:
-        print('try connect : %s' % (config['default']['API_URL']))
+        print('try connect : %s' % (config.get('default', 'API_URL')))
 
         ws = MyWebsocketClient(
-            config['default']['API_URL'],
+            config.get('default', 'API_URL'),
             protocols=['http-only', 'chat'])
 
-        ws.api_userid = config['default']['API_USERID']
-        ws.api_password = config['default']['API_PASSWORD']
-        ws.api_termid = config['default']['API_TERMID']
+        ws.api_userid = config.get('default', 'API_USERID')
+        ws.api_password = config.get('default', 'API_PASSWORD')
+        ws.api_termid = config.get('default', 'API_TERMID')
 
         ws.connect()
 
