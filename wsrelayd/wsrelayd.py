@@ -43,12 +43,9 @@ import ConfigParser
 # for python-3.x
 #import configparser
 
-# for upstream
-from ws4py.client.threadedclient import WebSocketClient
-# for client
 from twisted.python import log
 from twisted.internet import reactor
-from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
+from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory, WebSocketClientProtocol, WebSocketClientFactory, connectWS
 
 # macro
 PROCRET_SUCCESS = 0
@@ -59,7 +56,7 @@ PROCRET_ERROR_WS = 2
 # global var
 glogger = None
 gconfig = None
-gclientlist = []
+gdownman = None
 
 
 def init(confpath):
@@ -67,6 +64,9 @@ def init(confpath):
     _config = None
     global glogger
     global gconfig
+    global gdownman
+
+    gdownman = MyDownstreamManager()
 
     try:
         _config = ConfigParser.ConfigParser()
@@ -89,7 +89,7 @@ def init(confpath):
 
         glogger.addHandler(_h)
 
-        glogger.setLevel(logging.INFO)
+        glogger.setLevel(logging.DEBUG)
     except:
         sys.stderr.write('fail create logger. (%s,%s)\n' % (
                 sys.exc_info()[1], sys.exc_info()[2]))
@@ -97,77 +97,79 @@ def init(confpath):
     return True
 
 
-class MyEqCareWs4pyClient(WebSocketClient):
-    api_userid = ''
-    api_password = ''
-    api_termid = ''
+class MyEqCareProtocol(WebSocketClientProtocol):
+    def onConnect(self, response):
+        glogger.info("Server connected: {0}".format(response.peer))
 
-    def opened(self):
+    def onOpen(self):
         data = {
             "version": {
                 "common_version": "1",
                 "details_version": "1"},
-          "common": {
-            "datatype": "authentication",
-            "msgid": "",
-            "sendid": "",
-            "senddatetime": ""
-          },
-          "details": {
-            "password": self.api_password
-          },
-          "sender": {
-            "version": "1",
-            "userid": self.api_userid,
-            "termid": self.api_termid
-          },
-          "receiver": {
-            "version": "1",
-            "userid": "*",
-            "termid": "*"
-          },
-        }
+            "common": {
+                "datatype": "authentication",
+                "msgid": "",
+                "sendid": "",
+                "senddatetime": ""
+                },
+            "details": {
+                "password": gconfig.get('upstream', 'api_password')
+                },
+            "sender": {
+                "version": "1",
+                "userid": gconfig.get('upstream', 'api_userid'),
+                "termid": gconfig.get('upstream', 'api_termid')
+                },
+            "receiver": {
+                "version": "1",
+                "userid": "*",
+                "termid": "*"
+                },
+            }
 
-        self.send(json.dumps(data))
+        s = json.dumps(data).encode('utf8')
+        self.sendMessage(s, isBinary=False)
+        glogger.info(s)
 
-        glogger.info('UPSTREAM: send auth message.')
-        glogger.info(data)
+    def onMessage(self, payload, isBinary):
+        glogger.info('---- EVENT : receive : %s' % datetime.datetime.now())
 
-    def closed(self, code, reason):
-        glogger.info('UPSTREAM: Closed down. (code=%s, reason=%s)' % (
-                code, reason))
+        if isBinary:
+            glogger.info("Binary message received: {0} bytes".format(len(payload)))
+        else:
+            s = payload.decode('utf8')
+            message = json.loads(s)
 
-    def received_message(self, m):
-        glogger.info('UPSTREAN-RECV : receive : %s' % datetime.datetime.now())
-        message = json.loads(str(m))
-
-        if 'details' in message and 'datatype' in message['common']:
-            glogger.info('UPSTREAM: datatype: %s' %
-                        message['common']['datatype'])
+            glogger.info("Text message received:")
             glogger.info(message)
 
-            if 'authentication' == message['common']['datatype']:
-                if '200' == message['details']['resultcode']:
-                    glogger.info('UPSTREAM: success auth')
+            if 'details' in message and 'datatype' in message['common']:
+                glogger.info('datatype: %s' % message['common']['datatype'])
+
+                if 'authentication' == message['common']['datatype']:
+                    if '200' == message['details']['resultcode']:
+                        glogger.info('success auth')
+                    else:
+                        glogger.warn('fail auth')
                 else:
-                    glogger.info('UPSTREAM: fail auth')
+                    glogger.info('do relay.')
+                    #
+                    # relay code
+                    #
+                    payload = json.dumps(message,
+                                         ensure_ascii=False).encode('utf8')
+
+                    gdownman.broadcast(payload)
             else:
-                glogger.info('do relay message')
-                #
-                # relay code
-                #
-                payload = json.dumps(message, ensure_ascii=False).encode('utf8')
-                for c in gclientlist:
-                    try:
-                        c.client.sendMessage(payload, isBinary=False)
-                    except:
-                        glogger.error('EXCEPT: fail relay. (%s, %s)' % (
-                                sys.exc_info()[0], sys.exc_info()[1]))
-        else:
-            glogger.debug('receive unknown message.')
+                print('receive unknown message.')
+
+        print
+
+    def onClose(self, wasClean, code, reason):
+        glogger.info('Closed down. (code=%s, reason=%s)' % (code, reason))
 
 
-class MyWebsocetClinetInfo(object):
+class MyDownstreamClinet(object):
     client = None
     is_auth = False
     datatypes = {}
@@ -176,14 +178,36 @@ class MyWebsocetClinetInfo(object):
         self.client = client
 
 
+class MyDownstreamManager(object):
+    _clientlist = []
+
+    def __init__(self):
+        pass
+
+    def add_client(self, c):
+        self._clientlist.append(c)
+        glogger.debug('add client : %s' % (c))
+
+    def remove_client(self):
+        pass
+
+    def broadcast(self, payload):
+        for c in self._clientlist:
+            try:
+                c.client.sendMessage(payload, isBinary=False)
+            except:
+                glogger.error('EXCEPT: fail relay. (%s, %s)' % (
+                        sys.exc_info()[0], sys.exc_info()[1]))
+
+
 class MyServerProtocol(WebSocketServerProtocol):
     def onConnect(self, request):
         glogger.info('CLIENT: onConnect, peer=%s' % (request.peer))
 
-        wsc = MyWebsocetClinetInfo(self)
+        c = MyDownstreamClinet(self)
 
-        global gclientlist
-        gclientlist.append(wsc)
+        global gdownman
+        gdownman.add_client(c)
 
     def onOpen(self):
         glogger.info('CLIENT: onOpen(), welcome Websocket!')
@@ -215,27 +239,20 @@ class MyController(object):
             return False
 
         try:
+            #log.startLogging(sys.stdout)
+
             # start upstream client
-            self._upstream = MyEqCareWs4pyClient(
+            factory = WebSocketClientFactory(
                 self._config.get('upstream', 'api_url'),
-                protocols=['http-only', 'chat'])
+                debug=False)
+            factory.protocol = MyEqCareProtocol
 
-            self._upstream.api_userid = self._config.get(
-                'upstream', 'api_userid')
-            self._upstream.api_password = self._config.get(
-                'upstream', 'api_password')
-            self._upstream.api_termid = self._config.get(
-                'upstream', 'api_termid')
-
-            self._upstream.relay_streams = self._downstream_factory
+            connectWS(factory)
 
             glogger.info('start upstream connection.: %s' % (
                     self._config.get('upstream', 'api_url')))
-            self._upstream.connect()
 
             # start downstream server
-            #log.startLogging(sys.stdout)
-
             __listen_url = '%s://%s:%s/wsrelayd/' % (
                 self._config.get('downstream', 'listen_protocol'),
                 self._config.get('downstream', 'listen_address'),
@@ -250,10 +267,17 @@ class MyController(object):
             self._downstream_factory.setProtocolOptions(maxFramePayloadSize=0)
             self._downstream_factory.setProtocolOptions(maxMessagePayloadSize=0)
             self._downstream_factory.setProtocolOptions(autoFragmentSize=0)
-            self._downstream_factory.setProtocolOptions(openHandshakeTimeout=0)
-            self._downstream_factory.setProtocolOptions(autoPingInterval=300)
-            self._downstream_factory.setProtocolOptions(autoPingTimeout=15)
             self._downstream_factory.setProtocolOptions(versions=[8, 13])
+
+            self._downstream_factory.setProtocolOptions(
+                openHandshakeTimeout=self._config.getint(
+                    'downstream', 'openHandshakeTimeout'))
+            self._downstream_factory.setProtocolOptions(
+                autoPingInterval=self._config.getint(
+                    'downstream', 'autoPingInterval'))
+            self._downstream_factory.setProtocolOptions(
+                autoPingTimeout=self._config.getint(
+                    'downstream', 'autoPingTimeout'))
 
             glogger.info('start downstream connection.')
             reactor.listenTCP(
