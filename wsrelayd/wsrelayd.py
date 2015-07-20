@@ -131,6 +131,17 @@ class MyEqCareProtocol(WebSocketClientProtocol):
         self.sendMessage(s, isBinary=False)
         glogger.info(s)
 
+    def onClose(self, wasClean, code, reason):
+        glogger.info('Closed down. (code=%s, reason=%s)' % (code, reason))
+
+    def onPong(self, payload):
+        glogger.debug('UPSTREAM: onPong')
+        super(MyEqCareProtocol, self).onPong(payload)
+
+    def onPing(self, payload):
+        glogger.debug('UPSTEAM: onPing')
+        super(MyEqCareProtocol, self).onPing(payload)
+
     def onMessage(self, payload, isBinary):
         glogger.info('---- EVENT : receive : %s' % datetime.datetime.now())
 
@@ -164,9 +175,6 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                 print('receive unknown message.')
 
         print
-
-    def onClose(self, wasClean, code, reason):
-        glogger.info('Closed down. (code=%s, reason=%s)' % (code, reason))
 
 
 class MyDownstreamClinet(object):
@@ -215,6 +223,14 @@ class MyServerProtocol(WebSocketServerProtocol):
     def onClose(self, wasClean, code, reason):
         glogger.info('CLIENT: Closed down. (code=%s, reason=%s)' % (
                      code, reason))
+
+    def onPong(self, payload):
+        glogger.debug('CLIENT: onPong')
+        super(MyServerProtocol, self).onPong(payload)
+
+    def onPing(self, payload):
+        glogger.debug('CLIENT: onPing')
+        super(MyServerProtocol, self).onPing(payload)
 
     def onMessage(self, payload, isBinary):
         glogger.info('CLIENT-RECV : %s' % datetime.datetime.now())
