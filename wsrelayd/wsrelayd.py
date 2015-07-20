@@ -37,7 +37,7 @@ import json
 import datetime
 import time
 import logging
-
+import threading
 # for python-2.7
 import ConfigParser
 # for python-3.x
@@ -179,43 +179,64 @@ class MyEqCareProtocol(WebSocketClientProtocol):
 
 class MyDownstreamClinet(object):
     client = None
-    is_auth = False
+    _is_auth = False
     datatypes = {}
 
     def __init__(self, client):
         self.client = client
 
+    def auth(self, userid, password):
+        return True
+
+    def is_auth(self):
+        return self._is_auth
+
 
 class MyDownstreamManager(object):
-    _clientlist = []
+    # key is id(MyServerProtocol),
+    # value is MyDownstreamClinet instance
+    _clients = {}
+    _client_count = 0
+    _lock_clients = threading.Lock()
 
     def __init__(self):
         pass
 
     def add_client(self, c):
-        self._clientlist.append(c)
-        glogger.debug('add client : %s' % (c))
+        glogger.debug('add client<id> : %s' % (id(c)))
 
-    def remove_client(self):
-        pass
+        client = MyDownstreamClinet(c)
+
+        with self._lock_clients:
+            self._clients[id(c)] = client
+            self._client_count = self._client_count + 1
+            glogger.info('client count<add> = %s' % (self._client_count))
+
+    def remove_client(self, c):
+        glogger.debug('remove client<id> : %s' % (id(c)))
+
+        with self._lock_clients:
+            if id(c) in self._clients:
+                del self._clients[id(c)]
+                self._client_count = self._client_count - 1
+                glogger.info('client count<rm> = %s' % (self._client_count))
 
     def broadcast(self, payload):
-        for c in self._clientlist:
-            try:
-                c.client.sendMessage(payload, isBinary=False)
-            except:
-                glogger.error('EXCEPT: fail relay. (%s, %s)' % (
-                        sys.exc_info()[0], sys.exc_info()[1]))
+        with self._lock_clients:
+            for k, v in self._clients.iteritems():
+                try:
+                    v.client.sendMessage(payload, isBinary=False)
+                except:
+                    glogger.warn('EXCEPT: fail relay<id>. (%s, %s)' % (
+                            k, sys.exc_info()[0], sys.exc_info()[1]))
 
 
 class MyServerProtocol(WebSocketServerProtocol):
     def onConnect(self, request):
         glogger.info('CLIENT: onConnect, peer=%s' % (request.peer))
 
-        c = MyDownstreamClinet(self)
-
         global gdownman
-        gdownman.add_client(c)
+        gdownman.add_client(self)
 
     def onOpen(self):
         glogger.info('CLIENT: onOpen(), welcome Websocket!')
@@ -223,6 +244,9 @@ class MyServerProtocol(WebSocketServerProtocol):
     def onClose(self, wasClean, code, reason):
         glogger.info('CLIENT: Closed down. (code=%s, reason=%s)' % (
                      code, reason))
+
+        global gdownman
+        gdownman.remove_client(self)
 
     def onPong(self, payload):
         glogger.debug('CLIENT: onPong')
