@@ -2,7 +2,7 @@
 websocket daemon and tools for EqCare.
 
 # CurrentVersion
-(yet no release.)
+0.1.0
 
 # Develop Environment (server)
 - Debian GNU/Linux 7 (wheezy) amd64
