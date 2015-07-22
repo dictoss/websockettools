@@ -45,7 +45,7 @@ import ConfigParser
 #import configparser
 
 from twisted.python import log
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory, WebSocketClientProtocol, WebSocketClientFactory, connectWS
 
 # macro
@@ -133,8 +133,19 @@ class MyEqCareProtocol(WebSocketClientProtocol):
         self.sendMessage(s, isBinary=False)
         glogger.info(s)
 
+    def _retry_connect(self):
+        glogger.info('retry connect.')
+        connectWS(self.factory)
+
     def onClose(self, wasClean, code, reason):
-        glogger.info('Closed down. (code=%s, reason=%s)' % (code, reason))
+        glogger.warn('Closed down. (code=%s, reason=%s)' % (code, reason))
+
+        # retry connect
+        glogger.debug('set retry connect timer.')
+        deferred = defer.Deferred()
+        reactor.callLater(
+            gconfig.getint('upstream', 'error_reconnect_time'),
+            self._retry_connect)
 
     def onPong(self, payload):
         glogger.debug('UPSTREAM: onPong')
