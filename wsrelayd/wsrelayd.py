@@ -133,19 +133,8 @@ class MyEqCareProtocol(WebSocketClientProtocol):
         self.sendMessage(s, isBinary=False)
         glogger.info(s)
 
-    def _retry_connect(self):
-        glogger.info('retry connect.')
-        connectWS(self.factory)
-
     def onClose(self, wasClean, code, reason):
         glogger.warn('Closed down. (code=%s, reason=%s)' % (code, reason))
-
-        # retry connect
-        glogger.debug('set retry connect timer.')
-        deferred = defer.Deferred()
-        reactor.callLater(
-            gconfig.getint('upstream', 'error_reconnect_time'),
-            self._retry_connect)
 
     def onPong(self, payload):
         glogger.debug('UPSTREAM: onPong')
@@ -306,6 +295,34 @@ class MyServerProtocol(WebSocketServerProtocol):
             glogger.info(payload)
 
 
+class EqCareWebSocketClientFactory(WebSocketClientFactory):
+    def clientConnectionFailed(self, connector, reason):
+        glogger.warn('UPSTREAM: Connection failed. Reason: %s' % (reason))
+
+        # retry connect
+        glogger.debug('set retry connect timer.')
+        deferred = defer.Deferred()
+        reactor.callLater(
+            gconfig.getint('upstream', 'retry_connect_spantime'),
+            self._retry_connect)
+
+    def clientConnectionLost(self, connector, reason):
+        glogger.warn('UPSTREAM: Lost connection.  Reason: %s' % (reason))
+
+        # retry connect
+        glogger.debug('set retry connect timer.')
+        deferred = defer.Deferred()
+        reactor.callLater(
+            gconfig.getint('upstream', 'retry_connect_spantime'),
+            self._retry_connect)
+
+    def _retry_connect(self):
+        glogger.info('retry connect.')
+        connectWS(
+            self,
+            timeout=gconfig.getint('upstream', 'connect_timeout'))
+
+
 class MyController(object):
     _config = None
     _config_path = ''
@@ -323,12 +340,15 @@ class MyController(object):
             #log.startLogging(sys.stdout)
 
             # start upstream client
-            factory = WebSocketClientFactory(
+            factory = EqCareWebSocketClientFactory(
                 self._config.get('upstream', 'api_url'),
                 debug=False)
             factory.protocol = MyEqCareProtocol
 
-            connectWS(factory)
+            connectWS(
+                factory,
+                timeout=gconfig.getint('upstream', 'connect_timeout')
+                )
 
             glogger.info('start upstream connection.: %s' % (
                     self._config.get('upstream', 'api_url')))
