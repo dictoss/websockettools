@@ -148,36 +148,42 @@ class MyEqCareProtocol(WebSocketClientProtocol):
         glogger.info('---- EVENT : receive : %s' % datetime.datetime.now())
 
         if isBinary:
-            glogger.info("Binary message received: {0} bytes".format(len(payload)))
+            glogger.info("Binary message received: %s bytes" % (
+                    len(payload)))
         else:
             s = payload.decode('utf8')
-            message = json.loads(s)
-
             glogger.info("Text message received:")
-            glogger.info(message)
+            glogger.info(s)
 
-            if 'details' in message and 'datatype' in message['common']:
-                glogger.info('datatype: %s' % message['common']['datatype'])
+            try:
+                message = json.loads(s)
 
-                if 'authentication' == message['common']['datatype']:
-                    if '200' == message['details']['resultcode']:
-                        glogger.info('success auth')
+                if 'details' in message and 'datatype' in message['common']:
+                    glogger.info('datatype: %s' % (
+                            message['common']['datatype']))
+
+                    if 'authentication' == message['common']['datatype']:
+                        if '200' == message['details']['resultcode']:
+                            glogger.info('success auth')
+                        else:
+                            glogger.warn('fail auth')
                     else:
-                        glogger.warn('fail auth')
+                        glogger.info('do relay.')
+                        #
+                        # relay code
+                        #
+                        payload = json.dumps(message,
+                                             ensure_ascii=False).encode('utf8')
+
+                        if True:
+                            gdownman.broadcast(payload)
+                        else:
+                            gdownman.filtercast(payload)
                 else:
-                    glogger.info('do relay.')
-                    #
-                    # relay code
-                    #
-                    payload = json.dumps(message,
-                                         ensure_ascii=False).encode('utf8')
-
-                    if True:
-                        gdownman.broadcast(payload)
-                    else:
-                        gdownman.filtercast(payload)
-            else:
-                print('receive unknown message.')
+                    print('receive unknown message.')
+            except:
+                glogger.warn('UPSTREAM: EXCEPT: onMessage. (%s, %s)' % (
+                        sys.exc_info()[0], sys.exc_info()[1]))
 
         print
 
