@@ -12,7 +12,7 @@
 
 NAME=wsrelayd
 DAEMON=/usr/local/wsrelayd/wsrelayd.py
-DAEMON_ARGS="-c /usr/local/etc/wsrelayd/wsrelayd.ini"
+DAEMON_ARGS="-c /usr/local/wsrelayd/wsrelayd.ini"
 PIDFILE=/var/run/wsrelay.pid
 LOGFILE=/var/log/wsrelayd/wsrelayd.log
 UID=65534
