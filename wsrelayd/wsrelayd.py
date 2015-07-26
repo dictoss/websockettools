@@ -180,12 +180,10 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                         else:
                             gdownman.filtercast(payload)
                 else:
-                    print('receive unknown message.')
+                    glogger.debug('receive unknown message.')
             except:
                 glogger.warn('UPSTREAM: EXCEPT: onMessage. (%s, %s)' % (
                         sys.exc_info()[0], sys.exc_info()[1]))
-
-        print
 
 
 class MyDownstreamClinet(object):
