@@ -1,0 +1,10 @@
+/var/log/wsrelayd/wsrelayd.log
+{
+    daily
+    rotate 14
+    missingok
+    ifempty	
+    # dateext
+    compress
+    copytruncate
+}
