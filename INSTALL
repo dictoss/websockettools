@@ -30,12 +30,12 @@ $ diff -u __init__.py.0.3.4 __init__.py
 # cd <git clone dir>
 # cd wsrelayd
 # cp wsrelayd.py wsrelayd.ini /usr/local/wsrelayd/
-# chmod 755 /usr/local/wsrelayd/wsrelay.py
+# chmod 755 /usr/local/wsrelayd/wsrelayd.py
 # cp init.d/wsrelayd.sysvinit /etc/init.d/wsrelayd
 # insserv -d wsrelayd
 
 - modify config
-# vi /usr/local/wsrelayd.ini
+# vi /usr/local/wsrelayd/wsrelayd.ini
 
 - make log directory
 # mkdir /var/log/wsrelayd
