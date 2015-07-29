@@ -3,12 +3,12 @@
 --------------------
 - install modules and librairies
 # apt-get install python-2.7 python-pip python-dev libffi-dev
-# pip install pyOpenSSL
-# pip install service_identity
 # pip install twisted
-# pip install cffi
 # pip install autobahn
 # pip install ws4py    (if use test client tool)
+# pip install cffi
+# pip install pyOpenSSL
+# pip install service_identity
 
 - add patch (if use ws4py)
 $ diff -u __init__.py.0.3.4 __init__.py
@@ -30,12 +30,12 @@ $ diff -u __init__.py.0.3.4 __init__.py
 # cd <git clone dir>
 # cd wsrelayd
 # cp wsrelayd.py wsrelayd.ini /usr/local/wsrelayd/
-# chmod 755 /usr/local/wsrelayd/wsrelayd.py
-# cp init.d/wsrelayd.sysvinit /etc/init.d/wsrelayd
+# chmod 755 /usr/local/wsrelayd/wsrelay.py
+# cp init.d/wsrelayd.debian /etc/init.d/wsrelayd
 # insserv -d wsrelayd
 
 - modify config
-# vi /usr/local/wsrelayd/wsrelayd.ini
+# vi /usr/local/wsrelayd.ini
 
 - make log directory
 # mkdir /var/log/wsrelayd
@@ -47,3 +47,53 @@ $ diff -u __init__.py.0.3.4 __init__.py
 --------------
 | for centos-6
 --------------
+- setup ius-repo and epel
+# wget https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/epel-release-6-5.noarch.rpm
+# wget https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.no
+# rpm -ivh epel-release-6-5.noarch.rpm ius-release-1.0-14.ius.centos6.noarch.rpm
+# yum clean all
+# yum check-update
+
+- install modules and librairies
+# yum install python27 python27-devel python27-setuptools libffi-devel openssl-devel gcc make
+# easy_install-2.7 pip
+# pip2.7 install twisted
+# pip2.7 install autobahn
+# pip2.7 install ws4py    (if use test client tool)
+# pip2.7 install cffi
+# pip2.7 install pyOpenSSL
+# pip2.7 install service_identity
+
+- add patch (if use ws4py)
+$ diff -u __init__.py.0.3.4 __init__.py
+--- /usr/lib/python2.7/site-packages/ws4py/client/__init__.py.0.3.4       2015-07-19 12:25:25.00000
++++ /usr/lib/python2.7/site-packages/ws4py/client/__init__.py             2015-07-19 23:59:18.62731
+@@ -245,7 +245,7 @@
+         handshake.
+         """
+         headers = [
+-            ('Host', self.host),
++            ('Host', '%s:%s' % (self.host, self.port)),
+             ('Connection', 'Upgrade'),
+             ('Upgrade', 'websocket'),
+            ('Sec-WebSocket-Key', self.key.decode('utf-8')),
+
+- install
+# mkdir -p /usr/local/wsrelayd
+# cd <git clone dir>
+# cd wsrelayd
+# cp wsrelayd.py wsrelayd.ini /usr/local/wsrelayd/
+# chmod 755 /usr/local/wsrelayd/wsrelayd.py
+# cp init.d/wsrelayd.rhel6 /etc/init.d/wsrelayd
+# chkconfig --add wsrelayd
+
+- modify config
+# vi /usr/local/wsrelayd/wsrelayd.ini
+
+- make log directory
+# mkdir /var/log/wsrelayd
+# chown -fR nobody:nobody /var/log/wsrelayd
+
+- start daemon
+# service wsrelayd start
+
