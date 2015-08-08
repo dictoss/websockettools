@@ -39,10 +39,11 @@ import time
 import logging
 import getopt
 import threading
+import copy
 # for python-2.7
 import ConfigParser
 # for python-3.x
-#import configparser
+# import configparser
 
 from twisted.python import log
 from twisted.internet import reactor, defer
@@ -94,12 +95,15 @@ def init(confpath):
         glogger.setLevel(logging.DEBUG)
     except:
         sys.stderr.write('fail create logger. (%s,%s)\n' % (
-                sys.exc_info()[1], sys.exc_info()[2]))
+            sys.exc_info()[1], sys.exc_info()[2]))
 
     return True
 
 
 class MyEqCareProtocol(WebSocketClientProtocol):
+    _force_broadcast = False
+    _broadcast_list = ['']
+
     def onConnect(self, response):
         glogger.info("Server connected: {0}".format(response.peer))
 
@@ -149,7 +153,7 @@ class MyEqCareProtocol(WebSocketClientProtocol):
 
         if isBinary:
             glogger.info("Binary message received: %s bytes" % (
-                    len(payload)))
+                len(payload)))
         else:
             s = payload.decode('utf8')
             glogger.info("Text message received:")
@@ -159,8 +163,8 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                 message = json.loads(s)
 
                 if 'details' in message and 'datatype' in message['common']:
-                    glogger.info('datatype: %s' % (
-                            message['common']['datatype']))
+                    datatype = message['common']['datatype']
+                    glogger.info('datatype: %s' % (datatype))
 
                     if 'authentication' == message['common']['datatype']:
                         if '200' == message['details']['resultcode']:
@@ -168,55 +172,126 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                         else:
                             glogger.warn('fail auth')
                     else:
-                        glogger.info('do relay.')
                         #
                         # relay code
                         #
-                        payload = json.dumps(message,
-                                             ensure_ascii=False).encode('utf8')
-
-                        if True:
+                        if self._force_broadcast:
+                            # use broadcast if received any datatype.
+                            glogger.info('do broadcast force')
                             gdownman.broadcast(payload)
                         else:
-                            gdownman.filtercast(payload)
+                            if datatype in self._broadcast_list:
+                                # use broadcast if received any datatype.
+                                glogger.info('do broadcast in')
+                                gdownman.broadcast(payload)
+                            else:
+                                glogger.info('do filtercast')
+                                gdownman.filtercast(payload)
                 else:
                     glogger.debug('receive unknown message.')
             except:
                 glogger.warn('UPSTREAM: EXCEPT: onMessage. (%s, %s)' % (
-                        sys.exc_info()[0], sys.exc_info()[1]))
+                    sys.exc_info()[0], sys.exc_info()[1]))
 
 
 class MyDownstreamClinet(object):
     client = None
     _is_auth = False
+    _is_auth_broadcast = False
     _recv_filter = {}
 
     def __init__(self, client):
         self.client = client
 
     def auth(self, userid, password):
-        return True
+        # match auth database.
+        self._is_auth_broadcast = True
+        self._is_auth = True
+
+        return self._is_auth
 
     def is_auth(self):
         return self._is_auth
 
-    def set_filter(self, recv_filter):
-        self._recv_filter = recv_filter
+    def is_auth_broadcast(self):
+        return self._is_auth_broadcast
 
-    def is_receive(self, payload):
-        # write compare
-        return True
+    def is_broadcast(self):
+        if self._recv_filter is None:
+            return True
+        else:
+            return False
 
-    def sendMessage(self, payload, force):
+    def set_filter(self, use_broadcast, recv_filter):
+        """
+        filter format
+        {'datatype': {'filter_key': ['value1', 'value2']}
+
+        ex)
+        {
+        'earthquake': {'areainfo': ['123456']},
+        'tsunami': {'areacode': ['200']}
+        }
+        """
+        if '1' == use_broadcast and True == self.is_auth_broadcast():
+            glogger.info("client is broadcast mode.")
+            self._recv_filter = None
+        else:
+            self._recv_filter = recv_filter
+            glogger.info("client is filter mode.")
+            glogger.info(self._recv_filter)
+
+    def filter_payload(self, message):
+        filtered = {}
+
         try:
-            if force:
-                self.client.sendMessage(payload, isBinary=False)
+            if 'details' in message and 'datatype' in message['common']:
+                datatype = message['common']['datatype']
+
+                filtertypes = self._recv_filter.keys()
+                if datatype not in filtertypes:
+                    return None
+
+                filtered['version'] = message['version']
+                filtered['common'] = message['common']
+
+                # filter details
+                if datatype == 'earthquake':
+                    filtered['details'] = copy.deepcopy(message['details'])
+
+                    # get sub-set araeinfo
+                    del filtered['details']['areainfo']
+                    filtered['details']['areainfo'] = {}
+
+                    if 'areainfo' in self._recv_filter['earthquake']:
+                        c_set = set(self._recv_filter['earthquake']['areainfo'])
+                        data_set = set(message['details']['areainfo'].keys())
+
+                        target_set = data_set.intersection(c_set)
+                        glogger.info('terget_set : %s' % target_set)
+                        for i in target_set:
+                            filtered['details']['areainfo'][i] = message['details']['areainfo'][i]
+                else:
+                    # impl filter code
+                    filtered['details'] = message['details']
             else:
-                if self.is_receive():
-                    self.client.sendMessage(payload, isBinary=False)
+                glogger.warn('not found details or datatype in message.')
+                return None
+        except:
+            glogger.warn('fail parse upstream message - filter.(%s, %s)' % (
+                sys.exc_info()[0], sys.exc_info()[1]))
+
+            return None
+
+        return json.dumps(filtered)
+
+    def sendMessage(self, payload):
+        try:
+            glogger.info('client forward')
+            self.client.sendMessage(payload, isBinary=False)
         except:
             glogger.warn('EXCEPT: fail relay<%s>. (%s, %s)' % (
-                    id(self.client), sys.exc_info()[0], sys.exc_info()[1]))
+                id(self.client), sys.exc_info()[0], sys.exc_info()[1]))
 
 
 class MyDownstreamManager(object):
@@ -248,15 +323,30 @@ class MyDownstreamManager(object):
                 self._client_count = self._client_count - 1
                 glogger.info('client count<rm> = %s' % (self._client_count))
 
+    def get_client(self, c):
+        glogger.debug('select client<id> : %s' % (id(c)))
+
+        with self._lock_clients:
+            # if id(c) in self._clients:
+            return self._clients[id(c)]
+
     def broadcast(self, payload):
         with self._lock_clients:
             for k, v in self._clients.iteritems():
-                v.sendMessage(payload, True)
+                v.sendMessage(payload)
 
     def filtercast(self, payload):
         with self._lock_clients:
-            for v in self._clients.values():
-                v.sendMessage(payload, False)
+            s = payload.decode('utf8')
+            message = json.loads(s)
+
+            for k, v in self._clients.iteritems():
+                if v.is_auth_broadcast() and v.is_broadcast():
+                    v.sendMessage(payload)
+                else:
+                    filtered = v.filter_payload(message)
+                    if filtered is not None:
+                        v.sendMessage(filtered)
 
 
 class MyServerProtocol(WebSocketServerProtocol):
@@ -288,9 +378,43 @@ class MyServerProtocol(WebSocketServerProtocol):
         glogger.info('CLIENT-RECV : %s' % datetime.datetime.now())
 
         if isBinary:
-            pass
-        else:
+            glogger.warn('unsupport binary message.')
+            return
+
+        try:
             glogger.info(payload)
+
+            s = payload.decode('utf8')
+            glogger.info(s)
+
+            message = json.loads(s)
+
+            if 'details' in message and 'datatype' in message['common']:
+                datatype = message['common']['datatype']
+                glogger.info('client datatype: %s' % (datatype))
+
+                if 'authentication' == message['common']['datatype']:
+                    # optional parameter
+                    if 'use_broadcast' in message['details']:
+                        message['details']['use_broadcast'] = '0'
+
+                    global gdownman
+                    client = gdownman.get_client(self)
+
+                    if client.auth(message['sender']['userid'],
+                                   message['details']['password']):
+                        glogger.info('client success auth')
+
+                        client.set_filter(message['details']['use_broadcast'],
+                                          message['details']['filter'])
+                    else:
+                        glogger.warn('client fail auth')
+                        # disconnect
+                else:
+                    glogger.warn('client send unknown messsage.')
+        except:
+            glogger.warn('fail parse client message (%s, %s)' % (
+                sys.exc_info()[0], sys.exc_info()[1]))
 
 
 class EqCareWebSocketClientFactory(WebSocketClientFactory):
@@ -335,7 +459,7 @@ class MyController(object):
             return False
 
         try:
-            #log.startLogging(sys.stdout)
+            # log.startLogging(sys.stdout)
 
             # start upstream client
             factory = EqCareWebSocketClientFactory(
@@ -349,7 +473,7 @@ class MyController(object):
                 )
 
             glogger.info('start upstream connection.: %s' % (
-                    self._config.get('upstream', 'api_url')))
+                self._config.get('upstream', 'api_url')))
 
             # start downstream server
             __listen_url = '%s://%s:%s/wsrelayd/' % (
@@ -387,7 +511,7 @@ class MyController(object):
             reactor.run()
         except:
             glogger.error('EXCEPT: fail start connection. (%s, %s)' % (
-                    sys.exc_info()[1], sys.exc_info()[2]))
+                sys.exc_info()[1], sys.exc_info()[2]))
             return False
 
         return True
