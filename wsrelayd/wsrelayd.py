@@ -55,11 +55,16 @@ PROCRET_ERROR_CONFIG = 1
 PROCRET_ERROR_WS = 2
 PROCRET_ERROR_GETOPT = 3
 
+AUTH_BROADCAST = 0
+AUTH_FILTERCAST = 1
+AUTH_FILTERCAST_CUT = 2
+
 
 # global var
 glogger = None
 gconfig = None
 gdownman = None
+gconfig_user = None
 
 
 def init(confpath):
@@ -97,7 +102,20 @@ def init(confpath):
         sys.stderr.write('fail create logger. (%s,%s)\n' % (
             sys.exc_info()[1], sys.exc_info()[2]))
 
+    read_userconf(gconfig.get('main', 'userconf'))
     return True
+
+
+def read_userconf(userconf):
+    global gconfig_user
+
+    try:
+        _userconf = ConfigParser.ConfigParser()
+        _userconf.read(userconf)
+        gconfig_user = _userconf
+    except:
+        glogger.error('fail read user config. (%s,%s)\n' % (
+            sys.exc_info()[1], sys.exc_info()[2]))
 
 
 class MyEqCareProtocol(WebSocketClientProtocol):
@@ -204,9 +222,24 @@ class MyDownstreamClinet(object):
         self.client = client
 
     def auth(self, userid, password):
-        # match auth database.
-        self._is_auth_broadcast = True
-        self._is_auth = True
+        # match user config file.
+        try:
+            global gconfig_user
+
+            confpass = gconfig_user.get(userid, 'password')
+            if confpass == password:
+                if '1' == gconfig_user.get(userid, 'is_broadcast'):
+                    self._is_auth_broadcast = True
+
+                self._is_auth = True
+                glogger.info('auth() : success. user=%s' % (userid))
+            else:
+                glogger.warn('auth() : failed. not match password.')
+        except:
+            glogger.warn('auth() : failed.(%s, %s)' % (
+                sys.exc_info()[0], sys.exc_info()[1]))
+            self._is_auth_broadcast = False
+            self._is_auth = False
 
         return self._is_auth
 
@@ -233,11 +266,16 @@ class MyDownstreamClinet(object):
         'tsunami': {'areacode': ['200']}
         }
         """
+        ret = AUTH_BROADCAST
+
         if '1' == use_broadcast and True == self.is_auth_broadcast():
             glogger.info("client is broadcast mode.")
             self._recv_filter = None
+
+            ret = AUTH_BROADCAST
         else:
             glogger.info("client is filter mode.")
+            ret = AUTH_FILTERCAST
 
             limit = gconfig.getint('downstream', 'datatype_filter_max')
 
@@ -251,14 +289,18 @@ class MyDownstreamClinet(object):
                             if limit < len(vv):
                                 glogger.warn('over filter count.(%s:%s=%s)' % (k, kk, len(vv)))
                                 self._recv_filter[k][kk] = vv[0:limit]
+                                ret = AUTH_FILTERCAST_CUT
                             else:
                                 self._recv_filter[k][kk] = vv
                 except:
                     glogger.warn('fail parse client filter. (%s, %s)' % (
                         sys.exc_info()[0], sys.exc_info()[1]))
                     self._recv_filter[k] = {}
+                    ret = AUTH_FILTERCAST_CUT
 
             glogger.info(self._recv_filter)
+
+        return ret
 
     def filter_payload(self, message):
         filtered = {}
@@ -414,7 +456,7 @@ class MyServerProtocol(WebSocketServerProtocol):
 
                 if 'authentication' == message['common']['datatype']:
                     # optional parameter
-                    if 'use_broadcast' in message['details']:
+                    if 'use_broadcast' not in message['details']:
                         message['details']['use_broadcast'] = '0'
 
                     global gdownman
@@ -424,11 +466,47 @@ class MyServerProtocol(WebSocketServerProtocol):
                                    message['details']['password']):
                         glogger.info('client success auth')
 
-                        client.set_filter(message['details']['use_broadcast'],
-                                          message['details']['filter'])
+                        ret = client.set_filter(
+                            message['details']['use_broadcast'],
+                            message['details']['filter'])
+
+                        # response auth message
+                        resmsg = {
+                            'version': {
+                                'common_version': '1',
+                                'details_version': '1',
+                            },
+                            'common': {
+                                'datatype': 'authentication',
+                                'msgid': '',
+                                'sendid': '',
+                                'senddatetime': '',
+                            },
+                            'details': {
+                                'resultcode': '200',
+                                'castmode': '',
+                                'message': 'authorized success.'
+                            },
+                        }
+
+                        details_msg = 'authorized success.'
+                        if ret == AUTH_BROADCAST:
+                            resmsg['details']['castmode'] = 'broadcast'
+                            details_msg = details_msg
+                        elif ret == AUTH_FILTERCAST:
+                            resmsg['details']['castmode'] = 'filtercast'
+                            details_msg = details_msg
+                        else:
+                            resmsg['details']['castmode'] = 'filtercast'
+                            details_msg = details_msg + ' (cut filter list)'
+
+                        resmsg['details']['message'] = details_msg
+
+                        client.sendMessage(json.dumps(resmsg))
                     else:
-                        glogger.warn('client fail auth')
-                        # disconnect
+                        glogger.warn('client fail auth. bye.')
+                        self.sendClose()
+                        gdownman.remove_client(self)
                 else:
                     glogger.warn('client send unknown messsage.')
         except:
