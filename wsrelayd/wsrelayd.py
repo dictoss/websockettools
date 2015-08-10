@@ -237,8 +237,27 @@ class MyDownstreamClinet(object):
             glogger.info("client is broadcast mode.")
             self._recv_filter = None
         else:
-            self._recv_filter = recv_filter
             glogger.info("client is filter mode.")
+
+            limit = gconfig.getint('downstream', 'datatype_filter_max')
+
+            for k, v in recv_filter.iteritems():
+                try:
+                    self._recv_filter[k] = {}
+
+                    if v:
+                        for kk, vv in v.iteritems():
+                            # if over limit, delete tail.
+                            if limit < len(vv):
+                                glogger.warn('over filter count.(%s:%s=%s)' % (k, kk, len(vv)))
+                                self._recv_filter[k][kk] = vv[0:limit]
+                            else:
+                                self._recv_filter[k][kk] = vv
+                except:
+                    glogger.warn('fail parse client filter. (%s, %s)' % (
+                        sys.exc_info()[0], sys.exc_info()[1]))
+                    self._recv_filter[k] = {}
+
             glogger.info(self._recv_filter)
 
     def filter_payload(self, message):
