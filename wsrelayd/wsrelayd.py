@@ -333,8 +333,18 @@ class MyDownstreamClinet(object):
                         for i in target_set:
                             filtered['details']['areainfo'][i] = message['details']['areainfo'][i]
                 else:
-                    # impl filter code
-                    filtered['details'] = message['details']
+                    filtered['details'] = []
+
+                    for r in message['details']:
+                        for k, v in self._recv_filter[datatype].iteritems():
+                            for i in v:
+                                if k in r and i == r[k]:
+                                    glogger.debug('match, k=%s, v=%s' % (k, i))
+                                    break
+                            else:
+                                break
+                        else:
+                            filtered['details'].append(r)
             else:
                 glogger.warn('not found details or datatype in message.')
                 return None
