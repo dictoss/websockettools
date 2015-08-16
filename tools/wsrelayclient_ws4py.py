@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding: utf-8
 #
 # websocket clinet for test.
 #
@@ -36,6 +37,7 @@ import sys
 import json
 import datetime
 import time
+import codecs
 from ws4py.client.threadedclient import WebSocketClient
 
 
@@ -48,25 +50,38 @@ class MyWebsocketClient(WebSocketClient):
         print('opened')
 
         data = {
-          "common": {
-            "datatype": "authentication",
-            "msgid": "",
-            "sendid": "",
-            "senddatetime": ""
-          },
-          "details": {
-            "password": self.api_password
-          },
-          "sender": {
-            "version": "1",
-            "userid": self.api_userid,
-            "termid": self.api_termid
-          },
-          "receiver": {
-            "version": "1",
-            "userid": "*",
-            "termid": "*"
-          },
+            "common": {
+                "datatype": "authentication",
+                "msgid": "",
+                "sendid": "",
+                "senddatetime": ""
+            },
+            "details": {
+                "password": self.api_password,
+                # add parameter
+                "use_broadcast": "1",
+                "filter": {
+                    "earthquake": {
+                        "areainfo": ["423040", "392723", "523854"]},
+                    "tsunami": {
+                        "areacode": ["087", "312"],
+                        "controlstatus": ["試験"]},
+                    "publiccommons1": {
+                        "prefcode": ["27"]},
+                    "jmaweather": {
+                        "prefcode": ["02", "27", "28"]},
+                    }
+            },
+            "sender": {
+                "version": "1",
+                "userid": self.api_userid,
+                "termid": self.api_termid
+            },
+            "receiver": {
+                "version": "1",
+                "userid": "*",
+                "termid": "*"
+            },
         }
 
         self.send(json.dumps(data))
@@ -81,7 +96,6 @@ class MyWebsocketClient(WebSocketClient):
     def received_message(self, m):
         print('--------')
         print('EVENT : receive : %s' % datetime.datetime.now())
-        #message = json.loads(str(m))
         print(m)
         print
 
