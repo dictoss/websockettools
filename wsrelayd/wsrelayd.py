@@ -215,6 +215,7 @@ class MyEqCareProtocol(WebSocketClientProtocol):
 
 class MyDownstreamClinet(object):
     client = None
+    userid = None
     _is_auth = False
     _is_auth_broadcast = False
     _recv_filter = {}
@@ -233,6 +234,7 @@ class MyDownstreamClinet(object):
                     self._is_auth_broadcast = True
 
                 self._is_auth = True
+                self.userid = userid
                 glogger.info('auth() : success. user=%s' % (userid))
             else:
                 glogger.warn('auth() : failed. not match password.')
@@ -359,7 +361,7 @@ class MyDownstreamClinet(object):
 
     def sendMessage(self, payload):
         try:
-            glogger.info('client forward')
+            glogger.info('client send message. : userid=%s' % (self.userid))
             self.client.sendMessage(payload, isBinary=False)
         except:
             glogger.warn('EXCEPT: fail relay<%s>. (%s, %s)' % (
