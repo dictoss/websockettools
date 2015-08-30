@@ -36,6 +36,7 @@ $ diff -u __init__.py.0.3.4 __init__.py
 
 - modify config
 # vi /usr/local/wsrelayd.ini
+# vi /usr/local/wsrelayd/wsrelayd_user.ini
 
 - make log directory
 # mkdir /var/log/wsrelayd
@@ -84,15 +85,19 @@ $ diff -u __init__.py.0.3.4 __init__.py
 # cd wsrelayd
 # cp wsrelayd.py wsrelayd.ini /usr/local/wsrelayd/
 # chmod 755 /usr/local/wsrelayd/wsrelayd.py
-# cp init.d/wsrelayd.rhel6 /etc/init.d/wsrelayd
+# cp init.d/wsrelayd.rhel /etc/init.d/wsrelayd
 # chkconfig --add wsrelayd
+
+- add user for daemon
+# adduser wsrelay
 
 - modify config
 # vi /usr/local/wsrelayd/wsrelayd.ini
+# vi /usr/local/wsrelayd/wsrelayd_user.ini
 
 - make log directory
 # mkdir /var/log/wsrelayd
-# chown -fR nobody:nobody /var/log/wsrelayd
+# chown -fR wsrelay:wsrelay /var/log/wsrelayd
 
 - start daemon
 # service wsrelayd start
