@@ -1,4 +1,11 @@
 wsrelayd release note
 =====================
+# 0.3.0
+- support authentication downstream websocket client.
+- support service command.
+
+# 0.2.0
+- support filtercast mode.
+
 # 0.1.0
 - initial release.
