@@ -47,7 +47,7 @@ import ConfigParser
 # import configparser
 
 from twisted.python import log
-from twisted.internet import reactor, defer
+from twisted.internet import defer
 from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory, WebSocketClientProtocol, WebSocketClientFactory, connectWS
 
 # macro
@@ -66,6 +66,9 @@ glogger = None
 gconfig = None
 gdownman = None
 gconfig_user = None
+
+from twisted.internet import epollreactor
+epollreactor.install()
 
 
 def init(confpath):
@@ -531,6 +534,8 @@ class EqCareWebSocketClientFactory(WebSocketClientFactory):
     def clientConnectionFailed(self, connector, reason):
         glogger.warn('UPSTREAM: Connection failed. Reason: %s' % (reason))
 
+        from twisted.internet import reactor
+
         # retry connect
         glogger.debug('set retry connect timer.')
         deferred = defer.Deferred()
@@ -540,6 +545,8 @@ class EqCareWebSocketClientFactory(WebSocketClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         glogger.warn('UPSTREAM: Lost connection.  Reason: %s' % (reason))
+
+        from twisted.internet import reactor
 
         # retry connect
         glogger.debug('set retry connect timer.')
@@ -613,11 +620,12 @@ class MyController(object):
                     'downstream', 'autoPingTimeout'))
 
             glogger.info('start downstream connection.')
+
+            from twisted.internet import reactor
+
             reactor.listenTCP(
                 self._config.getint('downstream', 'listen_port'),
                 self._downstream_factory)
-
-            # loop
             reactor.run()
         except:
             glogger.error('EXCEPT: fail start connection. (%s, %s)' % (
