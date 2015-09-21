@@ -2,7 +2,7 @@
 websocket daemon and tools for EqCare.
 
 # CurrentVersion
-0.3.0
+0.4.0
 
 # wsrelayd function
 - exec daemon. (support debian-8, rhel-6)
@@ -12,7 +12,7 @@ websocket daemon and tools for EqCare.
 - re-connect EqCare websocket server if disconnect.
 - filtercast mode.
 - authentication downstream websocket client.
-- (not yet) SSL/TLS support downstream websocket.
+- SSL/TLS support downstream websocket.
 
 # Develop Environment (server)
 - Debian GNU/Linux 8 (jessie) amd64

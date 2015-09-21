@@ -1,5 +1,8 @@
 wsrelayd release note
 =====================
+# 0.4.0
+- support SSL/TLS connection for downstream's websocket.
+
 # 0.3.0
 - support authentication downstream websocket client.
 - support service command.
