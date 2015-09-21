@@ -47,7 +47,7 @@ import ConfigParser
 # import configparser
 
 from twisted.python import log
-from twisted.internet import defer
+from twisted.internet import defer, ssl
 from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory, WebSocketClientProtocol, WebSocketClientFactory, connectWS
 
 # macro
@@ -623,9 +623,21 @@ class MyController(object):
 
             from twisted.internet import reactor
 
-            reactor.listenTCP(
-                self._config.getint('downstream', 'listen_port'),
-                self._downstream_factory)
+            if 'wss' == self._config.get('downstream', 'listen_protocol'):
+                glogger.info('listen ssl/tls for downstream.')
+                reactor.listenSSL(
+                    self._config.getint('downstream', 'listen_port'),
+                    self._downstream_factory,
+                    ssl.DefaultOpenSSLContextFactory(
+                        self._config.get('downstream', 'ssl_key'),
+                        self._config.get('downstream', 'ssl_cert'))
+                )
+            else:
+                glogger.info('listen plain for downstream.')
+                reactor.listenTCP(
+                    self._config.getint('downstream', 'listen_port'),
+                    self._downstream_factory)
+
             reactor.run()
         except:
             glogger.error('EXCEPT: fail start connection. (%s, %s)' % (
