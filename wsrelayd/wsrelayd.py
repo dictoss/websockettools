@@ -620,6 +620,8 @@ class MyController(object):
                     'downstream', 'autoPingTimeout'))
 
             glogger.info('start downstream connection.')
+            glogger.info('backlog is %s' % (
+                self._config.get('downstream', 'backlog')))
 
             from twisted.internet import reactor
 
@@ -631,6 +633,7 @@ class MyController(object):
                     ssl.DefaultOpenSSLContextFactory(
                         self._config.get('downstream', 'ssl_key'),
                         self._config.get('downstream', 'ssl_cert')),
+                    backlog=self._config.getint('downstream', 'backlog'),
                     interface=self._config.get('downstream', 'listen_address')
                 )
             else:
@@ -638,6 +641,7 @@ class MyController(object):
                 reactor.listenTCP(
                     self._config.getint('downstream', 'listen_port'),
                     self._downstream_factory,
+                    backlog=self._config.getint('downstream', 'backlog'),
                     interface=self._config.get('downstream', 'listen_address')
                 )
 
