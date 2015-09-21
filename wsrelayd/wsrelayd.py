@@ -630,13 +630,16 @@ class MyController(object):
                     self._downstream_factory,
                     ssl.DefaultOpenSSLContextFactory(
                         self._config.get('downstream', 'ssl_key'),
-                        self._config.get('downstream', 'ssl_cert'))
+                        self._config.get('downstream', 'ssl_cert')),
+                    interface=self._config.get('downstream', 'listen_address')
                 )
             else:
                 glogger.info('listen plain for downstream.')
                 reactor.listenTCP(
                     self._config.getint('downstream', 'listen_port'),
-                    self._downstream_factory)
+                    self._downstream_factory,
+                    interface=self._config.get('downstream', 'listen_address')
+                )
 
             reactor.run()
         except:
