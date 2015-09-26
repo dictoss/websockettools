@@ -13,6 +13,8 @@ websocket daemon and tools for EqCare.
 - filtercast mode.
 - authentication downstream websocket client.
 - SSL/TLS support downstream websocket.
+- (yet) user-authentication config reload.
+- (yet) multiple upstream support.
 
 # Develop Environment (server)
 - Debian GNU/Linux 8 (jessie) amd64
