@@ -15,6 +15,7 @@ websocket daemon and tools for EqCare.
 - SSL/TLS support downstream websocket.
 - (yet) user-authentication config reload.
 - (yet) multiple upstream support.
+- (yet) client-to-client message support.
 
 # Develop Environment (server)
 - Debian GNU/Linux 8 (jessie) amd64
