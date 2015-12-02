@@ -50,7 +50,7 @@ $ diff -u __init__.py.0.3.4 __init__.py
 --------------
 - setup ius-repo and epel
 # wget https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/epel-release-6-5.noarch.rpm
-# wget https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.no
+# wget https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.noarch.rpm
 # rpm -ivh epel-release-6-5.noarch.rpm ius-release-1.0-14.ius.centos6.noarch.rpm
 # yum clean all
 # yum check-update
