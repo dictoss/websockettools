@@ -60,6 +60,7 @@ AUTH_BROADCAST = 0
 AUTH_FILTERCAST = 1
 AUTH_FILTERCAST_CUT = 2
 
+MAX_UPSTREAM_COUNT = 2
 
 # global var
 glogger = None
@@ -125,9 +126,11 @@ def read_userconf(userconf):
 class MyEqCareProtocol(WebSocketClientProtocol):
     _force_broadcast = False
     _broadcast_list = ['']
+    config_section = ''
 
     def onConnect(self, response):
         glogger.info("Server connected: {0}".format(response.peer))
+        self.config_section = self.factory.config_section
 
     def onOpen(self):
         data = {
@@ -141,12 +144,12 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                 "senddatetime": ""
                 },
             "details": {
-                "password": gconfig.get('upstream', 'api_password')
+                "password": gconfig.get(self.config_section, 'api_password')
                 },
             "sender": {
                 "version": "1",
-                "userid": gconfig.get('upstream', 'api_userid'),
-                "termid": gconfig.get('upstream', 'api_termid')
+                "userid": gconfig.get(self.config_section, 'api_userid'),
+                "termid": gconfig.get(self.config_section, 'api_termid')
                 },
             "receiver": {
                 "version": "1",
@@ -163,15 +166,17 @@ class MyEqCareProtocol(WebSocketClientProtocol):
         glogger.warn('Closed down. (code=%s, reason=%s)' % (code, reason))
 
     def onPong(self, payload):
-        glogger.debug('UPSTREAM: onPong')
+        glogger.debug('%s: onPong' % (self.config_section))
         super(MyEqCareProtocol, self).onPong(payload)
 
     def onPing(self, payload):
-        glogger.debug('UPSTEAM: onPing')
+        glogger.debug('%s: onPing' % (self.config_section))
         super(MyEqCareProtocol, self).onPing(payload)
 
     def onMessage(self, payload, isBinary):
-        glogger.info('---- EVENT : receive : %s' % datetime.datetime.now())
+        glogger.info('---- EVENT : %s : receive : %s' % (
+            self.config_section,
+            datetime.datetime.now()))
 
         if isBinary:
             glogger.info("Binary message received: %s bytes" % (
@@ -212,7 +217,8 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                 else:
                     glogger.debug('receive unknown message.')
             except:
-                glogger.warn('UPSTREAM: EXCEPT: onMessage. (%s, %s)' % (
+                glogger.warn('%s: EXCEPT: onMessage. (%s, %s)' % (
+                    self.config_section,
                     sys.exc_info()[0], sys.exc_info()[1]))
 
 
@@ -531,8 +537,12 @@ class MyServerProtocol(WebSocketServerProtocol):
 
 
 class EqCareWebSocketClientFactory(WebSocketClientFactory):
+    config_section = ''
+
     def clientConnectionFailed(self, connector, reason):
-        glogger.warn('UPSTREAM: Connection failed. Reason: %s' % (reason))
+        glogger.warn('%s: Connection failed. Reason: %s' % (
+            self.config_section,
+            reason))
 
         from twisted.internet import reactor
 
@@ -540,11 +550,13 @@ class EqCareWebSocketClientFactory(WebSocketClientFactory):
         glogger.debug('set retry connect timer.')
         deferred = defer.Deferred()
         reactor.callLater(
-            gconfig.getint('upstream', 'retry_connect_spantime'),
+            gconfig.getint(self.config_section, 'retry_connect_spantime'),
             self._retry_connect)
 
     def clientConnectionLost(self, connector, reason):
-        glogger.warn('UPSTREAM: Lost connection.  Reason: %s' % (reason))
+        glogger.warn('%s: Lost connection.  Reason: %s' % (
+            self.config_section,
+            reason))
 
         from twisted.internet import reactor
 
@@ -552,21 +564,20 @@ class EqCareWebSocketClientFactory(WebSocketClientFactory):
         glogger.debug('set retry connect timer.')
         deferred = defer.Deferred()
         reactor.callLater(
-            gconfig.getint('upstream', 'retry_connect_spantime'),
+            gconfig.getint(self.config_section, 'retry_connect_spantime'),
             self._retry_connect)
 
     def _retry_connect(self):
         glogger.info('retry connect.')
         connectWS(
             self,
-            timeout=gconfig.getint('upstream', 'connect_timeout'))
+            timeout=gconfig.getint(self.config_section, 'connect_timeout'))
 
 
 class MyController(object):
     _config = None
     _config_path = ''
     _downstream_factory = None
-    _upstream = None
 
     def __init__(self, config):
         self._config = config
@@ -579,18 +590,28 @@ class MyController(object):
             # log.startLogging(sys.stdout)
 
             # start upstream client
-            factory = EqCareWebSocketClientFactory(
-                self._config.get('upstream', 'api_url'),
-                debug=False)
-            factory.protocol = MyEqCareProtocol
+            for i in range(1, MAX_UPSTREAM_COUNT + 1):
+                upstream_sec = 'upstream_%d' % ((i))
 
-            connectWS(
-                factory,
-                timeout=gconfig.getint('upstream', 'connect_timeout')
-                )
+                if self._config.has_section(upstream_sec):
+                    factory = EqCareWebSocketClientFactory(
+                        self._config.get(upstream_sec, 'api_url'),
+                        debug=False)
+                    factory.protocol = MyEqCareProtocol
+                    factory.config_section = upstream_sec
 
-            glogger.info('start upstream connection.: %s' % (
-                self._config.get('upstream', 'api_url')))
+                    connectWS(
+                        factory,
+                        timeout=gconfig.getint(upstream_sec,
+                                               'connect_timeout')
+                    )
+
+                    glogger.info('start %s connection.: %s' % (
+                        upstream_sec,
+                        self._config.get(upstream_sec, 'api_url')))
+                else:
+                    glogger.info('not found section. no use %s' % (
+                        upstream_sec))
 
             # start downstream server
             __listen_url = '%s://%s:%s/wsrelayd/' % (
