@@ -1,5 +1,8 @@
 wsrelayd release note
 =====================
+# 0.5.0
+- support multiple upstream. (tested 2 upstreams)
+
 # 0.4.0
 - support SSL/TLS connection for downstream's websocket.
 
