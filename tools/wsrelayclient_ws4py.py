@@ -108,7 +108,8 @@ class MyWebsocketClient(WebSocketClient):
 
 
 def main():
-    _url = 'ws://localhost:8080/'
+    _url = 'ws://127.0.0.1:8080/'
+    #_url = 'ws://192.168.22.110:8080/'
 
     try:
         print('try connect : %s' % (_url))
