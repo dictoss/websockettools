@@ -61,6 +61,7 @@ AUTH_FILTERCAST = 1
 AUTH_FILTERCAST_CUT = 2
 
 MAX_UPSTREAM_COUNT = 2
+DUP_MSGID_TIMEOUT_SEC = 120
 
 # global var
 glogger = None
@@ -128,6 +129,10 @@ class MyEqCareProtocol(WebSocketClientProtocol):
     _broadcast_list = ['']
     config_section = ''
 
+    # class variables. share multi upstream instances.
+    _msgid_list = []
+    _msgid_lock = threading.RLock()
+
     def onConnect(self, response):
         glogger.info("Server connected: {0}".format(response.peer))
         self.config_section = self.factory.config_section
@@ -191,6 +196,7 @@ class MyEqCareProtocol(WebSocketClientProtocol):
 
                 if 'details' in message and 'datatype' in message['common']:
                     datatype = message['common']['datatype']
+                    msgid = message['common']['msgid']
                     glogger.info('datatype: %s' % (datatype))
 
                     if 'authentication' == message['common']['datatype']:
@@ -202,24 +208,65 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                         #
                         # relay code
                         #
-                        if self._force_broadcast:
-                            # use broadcast if received any datatype.
-                            glogger.info('do broadcast force')
-                            gdownman.broadcast(payload)
-                        else:
-                            if datatype in self._broadcast_list:
+
+                        # write downstream to first upstream only.
+                        self.delete_expire_msgid()
+                        is_first = self.is_first_forward(msgid)
+
+                        if is_first:
+                            if self._force_broadcast:
                                 # use broadcast if received any datatype.
-                                glogger.info('do broadcast in')
+                                glogger.info('do broadcast force')
                                 gdownman.broadcast(payload)
                             else:
-                                glogger.info('do filtercast')
-                                gdownman.filtercast(payload)
+                                if datatype in self._broadcast_list:
+                                    # use broadcast if received any datatype.
+                                    glogger.info('do broadcast in')
+                                    gdownman.broadcast(payload)
+                                else:
+                                    glogger.info('do filtercast')
+                                    gdownman.filtercast(payload)
+
+                            glogger.info('%s: message is first. forwarded.' % (
+                                self.config_section))
+                        else:
+                            glogger.info('%s: message is duplicate.' % (
+                                self.config_section))
                 else:
                     glogger.debug('receive unknown message.')
             except:
                 glogger.warn('%s: EXCEPT: onMessage. (%s, %s)' % (
                     self.config_section,
                     sys.exc_info()[0], sys.exc_info()[1]))
+
+    def is_first_forward(self, msgid):
+        glogger.debug('IN is_first_forward()')
+
+        result = False
+
+        with MyEqCareProtocol._msgid_lock:
+            for o in MyEqCareProtocol._msgid_list:
+                if msgid == o['msgid']:
+                    break
+            else:
+                d = {'msgid': msgid, 'time': datetime.datetime.now()}
+                MyEqCareProtocol._msgid_list.append(d)
+                result = True
+
+        return result
+
+    def delete_expire_msgid(self):
+        glogger.debug('IN delete_expire_msgid()')
+
+        delta = datetime.timedelta(seconds=DUP_MSGID_TIMEOUT_SEC)
+        now = datetime.datetime.now()
+        swaplist = None
+
+        with MyEqCareProtocol._msgid_lock:
+            swaplist = [x for x in MyEqCareProtocol._msgid_list if now - x['time'] < delta]
+            MyEqCareProtocol._msgid_list = swaplist
+            glogger.debug('duplicate-msgid-list : %s' % (
+                MyEqCareProtocol._msgid_list))
 
 
 class MyDownstreamClinet(object):
