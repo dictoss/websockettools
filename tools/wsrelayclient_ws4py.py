@@ -68,9 +68,19 @@ class MyWebsocketClient(WebSocketClient):
                         "controlstatus": ["試験"]},
                     "publiccommons1": {
                         "prefcode": ["27"]},
+                    "jalert1": {
+                        "prefcode": ["27"]},
+                    "mailkeishicho2": {},
                     "jmaweather": {
                         "prefcode": ["02", "27", "28"]},
-                    }
+                    "jmaearthquake_flash": {},
+                    "jmaearthquake_result": {},
+                    "jmatsunami_coast": {},
+                    "jmatsunami_offshore": {},
+                    "jmasediment": {},
+                    "jmaflood": {},
+                    "jmatornado": {},
+                }
             },
             "sender": {
                 "version": "1",
