@@ -12,6 +12,8 @@ websocket daemon and tools for EqCare.
 - re-connect EqCare websocket server if disconnect.
 - filtercast mode.
 - authentication downstream websocket client.
+  - ini-file support.
+  - (yet) sqlite3 support
 - SSL/TLS support downstream websocket.
 - multiple upstream support.
 - (yet) user-authentication config reload.
