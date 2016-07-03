@@ -23,8 +23,11 @@ websocket daemon and tools for EqCare.
 - Debian GNU/Linux 8 (jessie) amd64
 - python 2.7
 - Twisted 15.2.1
+- txaio 2.5.1
 - autobahn 0.10.4
 - cffi 1.1.2
+- pyOpenSSL 0.15.1
+- service_identity 14.0.0
 
 # Develop Environment (client)
 - Debian GNU/Linux 8 (jessie) amd64
