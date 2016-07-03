@@ -46,6 +46,9 @@ import ConfigParser
 # for python-3.x
 # import configparser
 
+import txaio
+txaio.use_twisted()
+
 from twisted.python import log
 from twisted.internet import defer, ssl
 from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory, WebSocketClientProtocol, WebSocketClientFactory, connectWS

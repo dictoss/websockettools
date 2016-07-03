@@ -2,13 +2,15 @@
 | for debian-7 (wheezy)
 --------------------
 - install modules and librairies
-# apt-get install python-2.7 python-pip python-dev libffi-dev
-# pip install twisted
-# pip install autobahn
-# pip install ws4py    (if use test client tool)
-# pip install cffi
-# pip install pyOpenSSL
-# pip install service_identity
+# apt-get install python-2.7
+# apt-get install python-pip python-dev libffi-dev libssl-dev
+# pip install twisted==15.2.1
+# pip install txaio==2.5.1
+# pip install autobahn==0.10.4
+# pip install cffi==1.1.2
+# pip install pyOpenSSL==0.15.1
+# pip install service_identity==14.0.0
+# pip install ws4py==0.3.4    (if use test client tool)
 
 - add patch (if use ws4py)
 $ diff -u __init__.py.0.3.4 __init__.py
@@ -58,12 +60,13 @@ $ diff -u __init__.py.0.3.4 __init__.py
 - install modules and librairies
 # yum install python27 python27-devel python27-setuptools libffi-devel openssl-devel gcc make
 # easy_install-2.7 pip
-# pip2.7 install twisted
-# pip2.7 install autobahn
-# pip2.7 install ws4py    (if use test client tool)
-# pip2.7 install cffi
-# pip2.7 install pyOpenSSL
-# pip2.7 install service_identity
+# pip2.7 install twisted==15.2.1
+# pip2.7 install txaio==2.5.1
+# pip2.7 install autobahn==0.10.4
+# pip2.7 install cffi==1.1.2
+# pip2.7 install pyOpenSSL==0.15.1
+# pip2.7 install service_identity==14.0.0
+# pip2.7 install ws4py==0.3.4    (if use test client tool)
 
 - add patch (if use ws4py)
 $ diff -u __init__.py.0.3.4 __init__.py
