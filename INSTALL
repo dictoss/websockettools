@@ -10,22 +10,7 @@
 # pip install cffi==1.1.2
 # pip install pyOpenSSL==0.15.1
 # pip install service_identity==14.0.0
-# pip install ws4py==0.3.4    (if use test client tool)
-
-- add patch (if use ws4py)
-$ diff -u __init__.py.0.3.4 __init__.py
---- /usr/local/lib/python2.7/dist-packages/ws4py/client/__init__.py.0.3.4       2015-07-19 12:25:25.000000000 +0900
-+++ /usr/local/lib/python2.7/dist-packages/ws4py/client/__init__.py             2015-07-19 23:59:18.627314361 +0900
-@@ -245,7 +245,7 @@
-         handshake.
-         """
-         headers = [
--            ('Host', self.host),
-+            ('Host', '%s:%s' % (self.host, self.port)),
-             ('Connection', 'Upgrade'),
-             ('Upgrade', 'websocket'),
-             ('Sec-WebSocket-Key', self.key.decode('utf-8')),
-
+# pip install ws4py==0.3.5    (if use test client tool)
 
 - install
 # mkdir -p /usr/local/wsrelayd
@@ -66,21 +51,7 @@ $ diff -u __init__.py.0.3.4 __init__.py
 # pip2.7 install cffi==1.1.2
 # pip2.7 install pyOpenSSL==0.15.1
 # pip2.7 install service_identity==14.0.0
-# pip2.7 install ws4py==0.3.4    (if use test client tool)
-
-- add patch (if use ws4py)
-$ diff -u __init__.py.0.3.4 __init__.py
---- /usr/lib/python2.7/site-packages/ws4py/client/__init__.py.0.3.4       2015-07-19 12:25:25.00000
-+++ /usr/lib/python2.7/site-packages/ws4py/client/__init__.py             2015-07-19 23:59:18.62731
-@@ -245,7 +245,7 @@
-         handshake.
-         """
-         headers = [
--            ('Host', self.host),
-+            ('Host', '%s:%s' % (self.host, self.port)),
-             ('Connection', 'Upgrade'),
-             ('Upgrade', 'websocket'),
-            ('Sec-WebSocket-Key', self.key.decode('utf-8')),
+# pip2.7 install ws4py==0.3.5    (if use test client tool)
 
 - install
 # mkdir -p /usr/local/wsrelayd

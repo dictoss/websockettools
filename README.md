@@ -32,4 +32,4 @@ websocket daemon and tools for EqCare.
 # Develop Environment (client)
 - Debian GNU/Linux 8 (jessie) amd64
 - python 2.7
-- ws4py 0.3.4 (with patched Host Header)
+- ws4py 0.3.5
