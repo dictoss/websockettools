@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # coding: utf-8
 #
 # websocket relay daemon for EqCare.
@@ -41,17 +41,25 @@ import logging
 import getopt
 import threading
 import copy
-# for python-2.7
-import ConfigParser
-# for python-3.x
-# import configparser
 
+# pip3 install six
+import six
+
+if six.PY2:
+    import ConfigParser
+else:
+    import configparser
+
+# pip3 install txaio
 import txaio
 txaio.use_twisted()
 
+# pip3 install twisted
 from twisted.python import log
 from twisted.internet import defer, ssl
-from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory, WebSocketClientProtocol, WebSocketClientFactory, connectWS
+from autobahn.twisted.websocket import WebSocketServerProtocol,\
+    WebSocketServerFactory, WebSocketClientProtocol,\
+    WebSocketClientFactory, connectWS
 
 # macro
 PROCRET_SUCCESS = 0
@@ -86,8 +94,12 @@ def init(confpath):
     gdownman = MyDownstreamManager()
 
     try:
-        _config = ConfigParser.ConfigParser()
-        _config.read(confpath)
+        if six.PY2:
+            _config = ConfigParser.ConfigParser()
+            _config.read(confpath)
+        else:
+            _config = configparser.ConfigParser()
+            _config.read(confpath)
 
         gconfig = _config
     except:
@@ -119,8 +131,13 @@ def read_userconf(userconf):
     global gconfig_user
 
     try:
-        _userconf = ConfigParser.ConfigParser()
-        _userconf.read(userconf)
+        if six.PY2:
+            _userconf = ConfigParser.ConfigParser()
+            _userconf.read(userconf)
+        else:
+            _userconf = configparser.ConfigParser()
+            _userconf.read(userconf)
+
         gconfig_user = _userconf
     except:
         glogger.error('fail read user config. (%s,%s)\n' % (
@@ -341,12 +358,12 @@ class MyDownstreamClinet(object):
 
             limit = gconfig.getint('downstream', 'datatype_filter_max')
 
-            for k, v in recv_filter.iteritems():
+            for k, v in recv_filter.items():
                 try:
                     self._recv_filter[k] = {}
 
                     if v:
-                        for kk, vv in v.iteritems():
+                        for kk, vv in v.items():
                             # if over limit, delete tail.
                             if limit < len(vv):
                                 glogger.warn('over filter count.(%s:%s=%s)' % (k, kk, len(vv)))
@@ -398,7 +415,7 @@ class MyDownstreamClinet(object):
                     filtered['details'] = []
 
                     for r in message['details']:
-                        for k, v in self._recv_filter[datatype].iteritems():
+                        for k, v in self._recv_filter[datatype].items():
                             for i in v:
                                 if k in r and i == r[k]:
                                     glogger.debug('match, k=%s, v=%s' % (k, i))
@@ -465,7 +482,7 @@ class MyDownstreamManager(object):
 
     def broadcast(self, payload):
         with self._lock_clients:
-            for k, v in self._clients.iteritems():
+            for k, v in self._clients.items():
                 v.sendMessage(payload)
 
     def filtercast(self, payload):
@@ -473,7 +490,7 @@ class MyDownstreamManager(object):
             s = payload.decode('utf8')
             message = json.loads(s)
 
-            for k, v in self._clients.iteritems():
+            for k, v in self._clients.items():
                 if v.is_auth_broadcast() and v.is_broadcast():
                     v.sendMessage(payload)
                 else:
@@ -574,7 +591,8 @@ class MyServerProtocol(WebSocketServerProtocol):
 
                         resmsg['details']['message'] = details_msg
 
-                        client.sendMessage(json.dumps(resmsg))
+                        _s = json.dumps(resmsg).encode('utf8')
+                        client.sendMessage(_s)
                     else:
                         glogger.warn('client fail auth. bye.')
                         self.sendClose()
@@ -645,8 +663,7 @@ class MyController(object):
 
                 if self._config.has_section(upstream_sec):
                     factory = EqCareWebSocketClientFactory(
-                        self._config.get(upstream_sec, 'api_url'),
-                        debug=False)
+                        self._config.get(upstream_sec, 'api_url'))
                     factory.protocol = MyEqCareProtocol
                     factory.config_section = upstream_sec
 
@@ -672,8 +689,7 @@ class MyController(object):
 
             self._downstream_factory = WebSocketServerFactory(
                 url=__listen_url,
-                protocols=['chat'],
-                debug=False)
+                protocols=['chat'])
             self._downstream_factory.protocol = MyServerProtocol
             self._downstream_factory.setProtocolOptions(maxFramePayloadSize=0)
             self._downstream_factory.setProtocolOptions(maxMessagePayloadSize=0)
@@ -743,7 +759,7 @@ def main():
         return PROCRET_ERROR_GETOPT
 
     try:
-        if False == init(confpath):
+        if init(confpath) is False:
             sys.stderr.write('fail init. abort.\n')
             return PROCRET_ERROR_CONFIG
     except:
