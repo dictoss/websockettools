@@ -36,7 +36,13 @@ import sys
 import json
 import datetime
 import time
-import ConfigParser
+import six
+
+if six.PY2:
+    import ConfigParser
+else:
+    import configparser
+
 from ws4py.client.threadedclient import WebSocketClient
 
 
@@ -111,13 +117,17 @@ def main():
     config = None
 
     try:
-        config = ConfigParser.ConfigParser()
+        if six.PY2:
+            config = ConfigParser.ConfigParser()
+        else:
+            config = configparser.ConfigParser()
+
         config.read('./wsclient_ws4py.ini')
 
         print('success read config.')
     except:
         print('error read config. abort. (%s, %s)' % (
-                sys.exc_info()[0], sys.exc_info()[1]))
+            sys.exc_info()[0], sys.exc_info()[1]))
         return 2
 
     try:
