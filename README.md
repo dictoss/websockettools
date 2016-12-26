@@ -2,7 +2,7 @@
 websocket daemon and tools for EqCare.
 
 # CurrentVersion
-0.5.0
+0.6.0
 
 # wsrelayd function
 - exec daemon. (support debian-8, rhel-6)
@@ -21,15 +21,16 @@ websocket daemon and tools for EqCare.
 
 # Develop Environment (server)
 - Debian GNU/Linux 8 (jessie) amd64
-- python 2.7
-- Twisted 15.2.1
-- txaio 2.5.1
-- autobahn 0.10.4
+- python 2.7 or 3.4+
+- Twisted 16.6.0
+- autobahn 0.17.0
+- txaio 2.5.2
+- six 1.10.0
 - cffi 1.1.2
-- pyOpenSSL 0.15.1
-- service_identity 14.0.0
+- pyOpenSSL 0.14
+- service-identity 1.0.0
 
 # Develop Environment (client)
 - Debian GNU/Linux 8 (jessie) amd64
-- python 2.7
+- python 2.7 or 3.4+
 - ws4py 0.3.5
