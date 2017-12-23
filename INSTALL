@@ -30,16 +30,21 @@
 | for centos-6
 --------------
 - setup ius-repo and epel
-# wget https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/epel-release-6-5.noarch.rpm
-# wget https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.noarch.rpm
-# rpm -ivh epel-release-6-5.noarch.rpm ius-release-1.0-14.ius.centos6.noarch.rpm
+# yum check-update
+# yum install epel-release
+# rpm -ivh https://centos6.iuscommunity.org/ius-release.rpm
 # yum clean all
 # yum check-update
 
+- get source code
+# yum install git2u
+# git clone https://github.com/dictoss/websockettools.git
+# cd websockettools
+
 - install modules and librairies
-# yum install python27 python27-devel python27-setuptools libffi-devel openssl-devel gcc make
-# easy_install-2.7 pip
-# pip2.7 install -r requirements.txt
+# yum install python36u python36u-devel python36u-setuptools libffi-devel openssl-devel gcc make
+# easy_install-3.6 pip
+# pip3.6 install -r requirements.txt
 
 - install
 # mkdir -p /usr/local/wsrelayd
@@ -64,3 +69,51 @@
 - start daemon
 # service wsrelayd start
 
+
+--------------
+| for centos-7
+--------------
+- setup ius-repo and epel
+# yum check-update
+# yum install epel-release
+# rpm -ivh https://centos7.iuscommunity.org/ius-release.rpm
+# yum clean all
+# yum check-update
+
+- get source code
+# yum install git2u
+# git clone https://github.com/dictoss/websockettools.git
+# cd websockettools
+
+- install modules and librairies
+# yum install python36u python36u-devel python36u-setuptools libffi-devel openssl-devel gcc make
+# easy_install-3.6 pip
+# pip3.6 install -r requirements.txt
+
+- install
+# mkdir -p /usr/local/wsrelayd
+# cd <git clone dir>
+# cd wsrelayd
+# cp wsrelayd.py wsrelayd.ini wsrelayd_user.ini /usr/local/wsrelayd/
+# chmod 755 /usr/local/wsrelayd/wsrelayd.py
+
+- regist systemd
+# cd <git clone dir>
+# cd wsrelayd/init.d
+# cp wsrelayd.service /usr/lib/systemd/system/
+# systemctl daemon-reload
+# systemctl status wsrelayd
+
+- add user for daemon
+# adduser wsrelay
+
+- modify config
+# vi /usr/local/wsrelayd/wsrelayd.ini
+# vi /usr/local/wsrelayd/wsrelayd_user.ini
+
+- make log directory
+# mkdir /var/log/wsrelayd
+# chown -fR wsrelay:wsrelay /var/log/wsrelayd
+
+- start daemon
+# systemctl start wsrelayd

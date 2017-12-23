@@ -1,0 +1,14 @@
+[Unit]
+Description=wsrelay daemon
+After=network.target
+
+[Service]
+Type=simple
+PIDFile=/run/wsrelayd.pid
+ExecStart=/usr/bin/python3.6 /usr/local/wsrelayd/wsrelayd.py -c /usr/local/wsrelayd/wsrelayd.ini
+ExecStop=/bin/kill -TERM $MAINPID
+User=wsrelay
+Group=wsrelay
+
+[Install]
+WantedBy=multi-user.target

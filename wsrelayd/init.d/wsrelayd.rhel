@@ -12,7 +12,7 @@
 . /etc/rc.d/init.d/functions
 
 prog="wsrelayd"
-PYBIN=/usr/bin/python2.7
+PYBIN=/usr/bin/python3.6
 DAEMON=/usr/local/wsrelayd/wsrelayd.py
 DAEMON_ARGS="-c /usr/local/wsrelayd/wsrelayd.ini"
 DAEMON_USER=wsrelay
