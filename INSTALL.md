@@ -61,7 +61,7 @@
 # cd wsrelayd
 # cp wsrelayd.py wsrelayd.ini /usr/local/wsrelayd/
 # chmod 755 /usr/local/wsrelayd/wsrelayd.py
-# cp init.d/wsrelayd.rhel /etc/init.d/wsrelayd
+# cp init.d/wsrelayd.rhel6 /etc/init.d/wsrelayd
 # chkconfig --add wsrelayd
 
 - add user for daemon
@@ -109,7 +109,7 @@
 - regist systemd
 # cd <git clone dir>
 # cd wsrelayd/init.d
-# cp wsrelayd.service /usr/lib/systemd/system/
+# cp wsrelayd.service.rhel7 /usr/lib/systemd/system/wsrelayd.service
 # systemctl daemon-reload
 # systemctl status wsrelayd
 
