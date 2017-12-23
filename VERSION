@@ -1,5 +1,10 @@
 wsrelayd release note
 =====================
+# 0.6.1
+- support python-3.5+
+- support debian-9 and rhel-7
+- drop support debian-7
+
 # 0.6.0
 - support python-3.4+
 

@@ -2,7 +2,7 @@
 websocket daemon and tools for EqCare.
 
 # CurrentVersion
-0.6.0
+0.6.1
 
 # wsrelayd function
 - exec daemon. (support debian-9, rhel-6, rhel-7)
