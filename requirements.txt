@@ -1,8 +1,9 @@
 Twisted==20.3.0
-autobahn==0.17.0
-txaio==2.5.2
-six==1.10.0
+autobahn==20.7.1
+txaio==20.4.1
+six==1.15.0
+cryptography==3.2.1
 cffi==1.11.2
-pyOpenSSL==17.5.0
+pyOpenSSL==19.1.0
 service-identity==18.1.0
 ws4py==0.5.1
