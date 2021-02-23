@@ -188,7 +188,7 @@ class MyEqCareProtocol(WebSocketClientProtocol):
         glogger.info(s)
 
     def onClose(self, wasClean, code, reason):
-        glogger.warn('Closed down. (code=%s, reason=%s)' % (code, reason))
+        glogger.warning('Closed down. (code=%s, reason=%s)' % (code, reason))
 
     def onPong(self, payload):
         glogger.debug('%s: onPong' % (self.config_section))
@@ -223,7 +223,7 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                         if '200' == message['details']['resultcode']:
                             glogger.info('success auth')
                         else:
-                            glogger.warn('fail auth')
+                            glogger.warning('fail auth')
                     else:
                         #
                         # relay code
@@ -255,7 +255,7 @@ class MyEqCareProtocol(WebSocketClientProtocol):
                 else:
                     glogger.debug('receive unknown message.')
             except:
-                glogger.warn('%s: EXCEPT: onMessage. (%s, %s)' % (
+                glogger.warning('%s: EXCEPT: onMessage. (%s, %s)' % (
                     self.config_section,
                     sys.exc_info()[0], sys.exc_info()[1]))
 
@@ -313,9 +313,9 @@ class MyDownstreamClinet(object):
                 self.userid = userid
                 glogger.info('auth() : success. user=%s' % (userid))
             else:
-                glogger.warn('auth() : failed. not match password.')
+                glogger.warning('auth() : failed. not match password.')
         except:
-            glogger.warn('auth() : failed.(%s, %s)' % (
+            glogger.warning('auth() : failed.(%s, %s)' % (
                 sys.exc_info()[0], sys.exc_info()[1]))
             self._is_auth_broadcast = False
             self._is_auth = False
@@ -366,13 +366,13 @@ class MyDownstreamClinet(object):
                         for kk, vv in v.items():
                             # if over limit, delete tail.
                             if limit < len(vv):
-                                glogger.warn('over filter count.(%s:%s=%s)' % (k, kk, len(vv)))
+                                glogger.warning('over filter count.(%s:%s=%s)' % (k, kk, len(vv)))
                                 self._recv_filter[k][kk] = vv[0:limit]
                                 ret = AUTH_FILTERCAST_CUT
                             else:
                                 self._recv_filter[k][kk] = vv
                 except:
-                    glogger.warn('fail parse client filter. (%s, %s)' % (
+                    glogger.warning('fail parse client filter. (%s, %s)' % (
                         sys.exc_info()[0], sys.exc_info()[1]))
                     self._recv_filter[k] = {}
                     ret = AUTH_FILTERCAST_CUT
@@ -425,10 +425,10 @@ class MyDownstreamClinet(object):
                         else:
                             filtered['details'].append(r)
             else:
-                glogger.warn('not found details or datatype in message.')
+                glogger.warning('not found details or datatype in message.')
                 return None
         except:
-            glogger.warn('fail parse upstream message - filter.(%s, %s)' % (
+            glogger.warning('fail parse upstream message - filter.(%s, %s)' % (
                 sys.exc_info()[0], sys.exc_info()[1]))
 
             return None
@@ -440,7 +440,7 @@ class MyDownstreamClinet(object):
             glogger.info('client send message. : userid=%s' % (self.userid))
             self.client.sendMessage(payload, isBinary=False)
         except:
-            glogger.warn('EXCEPT: fail relay<%s>. (%s, %s)' % (
+            glogger.warning('EXCEPT: fail relay<%s>. (%s, %s)' % (
                 id(self.client), sys.exc_info()[0], sys.exc_info()[1]))
 
 
@@ -528,7 +528,7 @@ class MyServerProtocol(WebSocketServerProtocol):
         glogger.info('CLIENT-RECV : %s' % datetime.datetime.now())
 
         if isBinary:
-            glogger.warn('unsupport binary message.')
+            glogger.warning('unsupport binary message.')
             return
 
         try:
@@ -594,13 +594,13 @@ class MyServerProtocol(WebSocketServerProtocol):
                         _s = json.dumps(resmsg).encode('utf8')
                         client.sendMessage(_s)
                     else:
-                        glogger.warn('client fail auth. bye.')
+                        glogger.warning('client fail auth. bye.')
                         self.sendClose()
                         gdownman.remove_client(self)
                 else:
-                    glogger.warn('client send unknown messsage.')
+                    glogger.warning('client send unknown messsage.')
         except:
-            glogger.warn('fail parse client message (%s, %s)' % (
+            glogger.warning('fail parse client message (%s, %s)' % (
                 sys.exc_info()[0], sys.exc_info()[1]))
 
 
@@ -608,7 +608,7 @@ class EqCareWebSocketClientFactory(WebSocketClientFactory):
     config_section = ''
 
     def clientConnectionFailed(self, connector, reason):
-        glogger.warn('%s: Connection failed. Reason: %s' % (
+        glogger.warning('%s: Connection failed. Reason: %s' % (
             self.config_section,
             reason))
 
@@ -622,7 +622,7 @@ class EqCareWebSocketClientFactory(WebSocketClientFactory):
             self._retry_connect)
 
     def clientConnectionLost(self, connector, reason):
-        glogger.warn('%s: Lost connection.  Reason: %s' % (
+        glogger.warning('%s: Lost connection.  Reason: %s' % (
             self.config_section,
             reason))
 
