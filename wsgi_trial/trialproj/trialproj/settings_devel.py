@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = ''
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -78,9 +78,9 @@ WSGI_APPLICATION = 'trialproj.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dummydb',
-        'USER': 'dummyuser',
-        'PASSWORD': 'dummypass',
+        'NAME': 'registapp',
+        'USER': 'webapp',
+        'PASSWORD': 'webpass',
         'HOST': '127.0.0.1',
         'PORT': '3306',
     }
@@ -105,8 +105,3 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
-
-try:
-    from .settings_devel import *
-except:
-    pass
