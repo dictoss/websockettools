@@ -2,7 +2,7 @@ Twisted==20.3.0
 autobahn==20.7.1
 txaio==20.4.1
 six==1.15.0
-cryptography==3.2.1
+cryptography==3.3.2
 cffi==1.11.2
 pyOpenSSL==19.1.0
 service-identity==18.1.0
