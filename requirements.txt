@@ -1,4 +1,4 @@
-Twisted==20.3.0
+Twisted==22.1.0
 autobahn==20.7.1
 txaio==20.4.1
 six==1.15.0
