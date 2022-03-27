@@ -1,3 +1,12 @@
+# WARNINGS: This project has been archived. It will not be updated anymore.
+
+- wsrelayd application has been archived.
+- The reason is as follows.
+    - As for the library you are using, ws4py is no longer maintained.
+    - The program is difficult because many libraries are used. It requires extensive refactoring to maintain.
+    - If you've done a large refactoring, the program will be a different one.
+    - Therefore, we havetened to maintain this program.
+
 # wsrelayd
 websocket daemon and tools for EqCare.
 
